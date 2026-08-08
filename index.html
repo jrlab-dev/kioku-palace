@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>記憶の宮殿</title>
+<style>
+/* 3つの宮殿の入口。ここから jinja.html / conbini.html / home.html へ渡す。
+   復習カレンダー(palace_srs)は3つで共通なので、ここで全部の期限をまとめて見せる。 */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:"Hiragino Sans","Yu Gothic","Hiragino Kaku Gothic ProN",sans-serif;
+  background:linear-gradient(180deg,#151a21 0%,#1e252e 55%,#28323d 100%);
+  color:#e8edf3;line-height:1.85;min-height:100vh}
+.wrap{max-width:760px;margin:0 auto;padding:26px 16px 60px}
+.head{text-align:center;margin-bottom:6px}
+.head .sub{font-size:14px;color:#e0b830;letter-spacing:.14em}
+.head h1{font-size:29px;margin:4px 0 10px;letter-spacing:.04em}
+.head p{font-size:15px;color:#c2ccd8;margin:0}
+.due{display:block;text-decoration:none;background:#e0b830;color:#1a1f2b;border-radius:14px;
+  padding:16px 18px;margin-top:20px;box-shadow:0 6px 20px rgba(224,184,48,.22)}
+.due b{font-size:19px;display:block}
+.due span{font-size:13px;font-weight:600;opacity:.8}
+.card{display:block;text-decoration:none;color:inherit;background:#2b3540;border-radius:14px;
+  padding:17px 18px;margin-top:14px;box-shadow:0 5px 18px rgba(0,0,0,.26);
+  border-left:6px solid #4a5766;transition:transform .12s}
+.card:active{transform:scale(.99)}
+.card.c1{border-left-color:#7fa8c8}
+.card.c2{border-left-color:#e0b830}
+.card.c3{border-left-color:#8fc88a}
+.card.c4{border-left-color:#5ec8d8}
+.card .no{font-size:12px;color:#8fa0b4;letter-spacing:.1em}
+.card .nm{font-size:20px;font-weight:800;margin:2px 0 4px}
+.card .nm em{font-style:normal;font-size:14px;font-weight:700;color:#e0b830;margin-left:8px}
+.card .de{font-size:14px;color:#c2ccd8}
+.card .st{font-size:12px;color:#8fa0b4;margin-top:7px}
+.step{background:#232b35;border-radius:14px;padding:16px 18px;margin-top:24px}
+.step h2{font-size:16px;margin:0 0 8px;color:#e0b830}
+.step ol{margin:0;padding-left:1.3em;font-size:14px;color:#c2ccd8}
+.step li{margin:6px 0}
+.note{font-size:12px;color:#7d8b9c;margin-top:22px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+const SRS_KEY = 'palace_srs';
+const ymd = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+function loadSRS(){ try{ return JSON.parse(localStorage.getItem(SRS_KEY)||'[]'); }catch(e){ return []; } }
+
+const PALACES = [
+  { key:'jinja',   file:'jinja.html',   no:'第1の宮殿', name:'山の上の神社', n:'15か所',
+    cls:'c1', desc:'はじめての人はここから。駐車場から山道を登り、鳥居をくぐって拝殿まで。上っていくので「あれは下のほう」という手がかりが増えます。' },
+  { key:'conbini', file:'conbini.html', no:'第2の宮殿', name:'コンビニ', n:'20か所／30か所',
+    cls:'c2', desc:'2つ目の宮殿。屋内・平地で、棚が似て見えるぶん難しくなります。温度帯（ホット・冷蔵・冷凍）で覚え分けます。' },
+  { key:'home',    file:'home.html',    no:'第3の宮殿', name:'あたまの中のマンション', n:'1部屋40か所',
+    cls:'c3', desc:'ここからが本番。1部屋が1つの宮殿です。自分の家・職場・通学の道…と部屋を増やせます。同じ宮殿を使い回すと前に置いたものが混ざるので、記憶の達人は頭の中に建物をいくつも持っています。' },
+];
+
+function render(){
+  const t = ymd(new Date());
+  const all = loadSRS();
+  const due = all.filter(x => x.next <= t);
+  const byKey = k => {
+    const mine = all.filter(x => (x.palace || 'conbini') === k);
+    const d = mine.filter(x => x.next <= t).length;
+    if(!mine.length) return 'まだ使っていません';
+    const next = mine.map(x=>x.next).sort()[0];
+    return d ? '復習の期限が来ています（' + d + '件）' : '覚えたもの ' + mine.length + '件・次の復習は ' + next;
+  };
+  let h = `<div class="head">
+      <div class="sub">MEMORY PALACE</div>
+      <h1>記憶の宮殿</h1>
+      <p>覚えたいものを、道すじの決まった場所に置いてくる。<br>
+      あとで同じ道を歩くと、置いたものが勝手に出てきます。</p>
+    </div>`;
+  if(due.length){
+    const first = PALACES.find(p => due.some(x => (x.palace||'conbini') === p.key)) || PALACES[0];
+    h += `<a class="due" href="${first.file}"><b>今日の復習が ${due.length}件 あります</b>
+      <span>忘れかけたころに戻すのが一番効きます・1件あたり約5分</span></a>`;
+  }
+  PALACES.forEach(p=>{
+    h += `<a class="card ${p.cls}" href="${p.file}">
+      <div class="no">${p.no}</div>
+      <div class="nm">${p.name}<em>${p.n}</em></div>
+      <div class="de">${p.desc}</div>
+      <div class="st">${byKey(p.key)}</div>
+    </a>`;
+  });
+  h += `<a class="card c4" href="drill.html">
+      <div class="no">第4の道具</div>
+      <div class="nm">変換ドリル<em>数字・記号を絵に変える</em></div>
+      <div class="de">記憶術には2段階あります。①場所に置く（上の3つ）②<b>絵にならないものを絵に変える</b>。
+        牛乳や傘は最初から絵ですが、1854年・H₂SO₄・民法第90条はそのままでは置けません。ここを練習する道具です。</div>
+      <div class="st">00〜99の変換表・1分間タイムアタック・法律や化学の言い換え例つき</div>
+    </a>`;
+  h += `<div class="step"><h2>進め方</h2><ol>
+      <li><b>神社（15か所）</b>で、置く・歩く・逆から答えるを体で覚える</li>
+      <li><b>コンビニ（30か所）</b>で、似た場所が並ぶ難しさに慣れる</li>
+      <li><b>あたまの中のマンション</b>に自分の場所（1部屋40か所）を作り、実際に覚えたいものを入れる。
+        1部屋を逆から言えるようになったら次の部屋を作る。ここからは復習カレンダーで回し続ける</li>
+    </ol>
+    <p style="font-size:13px;color:#93a1b1;margin:10px 0 0">
+      練習は1回15分以下で構いません。世界チャンピオンの練習も、1日5〜10分です。</p></div>`;
+  h += `<div class="note">覚えたものと写真は、この端末のブラウザの中だけに保存されます。どこへも送りません。</div>`;
+  document.getElementById('app').innerHTML = h;
+}
+render();
+</script>
+</body>
+</html>
