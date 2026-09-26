@@ -1,4 +1,4 @@
-import {ROUTE} from './route.js?v=mountain15-20260926-b5';
+import {ROUTE} from './route.js?v=mountain15-20260926-assoc3';
 export const STORAGE_KEY='palace_mountain_v2';
 export const LEGACY_KEYS=['palace_learning_v1','palace_srs'];
 export const REVIEW_INTERVALS=[1,3,7,14,30,60];
@@ -10,12 +10,12 @@ export function addCalendarDays(text,days){if(!/^\d{4}-\d{2}-\d{2}$/.test(text)|
 const text=(v,n=140)=>typeof v==='string'?v.trim().slice(0,n):'';
 function cleanOutcome(v){const p=byPlace.get(v?.placeId);return p&&p.item.id===v.itemId&&OUTCOMES.has(v.outcome)?{placeId:p.id,itemId:p.item.id,outcome:v.outcome}:null;}
 export function cleanOutcomes(rows){const map=new Map();for(const row of Array.isArray(rows)?rows:[]){const v=cleanOutcome(row);if(v)map.set(v.placeId,v);}return ROUTE.map(p=>map.get(p.id)).filter(Boolean);}
-export function freshSession(mode='learn'){return {phase:mode==='review'?'travel-recall':'travel-learn',mode,index:0,position:{x:0,z:5,yaw:0,pitch:0},associations:{},outcomes:[],choiceUsed:false,answerShown:false,reviewId:'',updatedAt:new Date().toISOString()};}
+export function freshSession(mode='learn'){return {phase:mode==='review'?'travel-recall':'travel-learn',mode,index:0,position:{x:0,z:5,yaw:0,pitch:0},associations:{},outcomes:[],choiceUsed:false,answerShown:false,pendingOutcome:null,reviewId:'',updatedAt:new Date().toISOString()};}
 export function defaults(){return {schemaVersion:2,prefs:{sound:false,reduced:null},session:null,associations:{},lastResult:null,reviews:[]};}
 export function sanitizeData(raw){
  const out=defaults();if(!raw||raw.schemaVersion!==2)return out;out.prefs={sound:raw.prefs?.sound===true,reduced:typeof raw.prefs?.reduced==='boolean'?raw.prefs.reduced:null};
  for(const p of ROUTE){const v=text(raw.associations?.[p.id]);if(v)out.associations[p.id]=v;}
- if(raw.session&&PHASES.has(raw.session.phase)){const s=raw.session,index=Number.isInteger(s.index)?Math.max(0,Math.min(14,s.index)):0,pos=s.position||{};out.session={phase:s.phase,mode:s.mode==='review'?'review':'learn',index,position:{x:Number.isFinite(pos.x)?Math.max(-2,Math.min(2,pos.x)):0,z:Number.isFinite(pos.z)?Math.max(-112,Math.min(7,pos.z)):5,yaw:Number.isFinite(pos.yaw)?pos.yaw:0,pitch:Number.isFinite(pos.pitch)?Math.max(-.8,Math.min(.8,pos.pitch)):0},associations:{...out.associations},outcomes:cleanOutcomes(s.outcomes),choiceUsed:s.choiceUsed===true,answerShown:s.answerShown===true,reviewId:text(s.reviewId,100),updatedAt:text(s.updatedAt,40)};for(const p of ROUTE){const v=text(s.associations?.[p.id]);if(v)out.session.associations[p.id]=v;}}
+ if(raw.session&&PHASES.has(raw.session.phase)){const s=raw.session,index=Number.isInteger(s.index)?Math.max(0,Math.min(14,s.index)):0,pos=s.position||{};out.session={phase:s.phase,mode:s.mode==='review'?'review':'learn',index,position:{x:Number.isFinite(pos.x)?Math.max(-2,Math.min(2,pos.x)):0,z:Number.isFinite(pos.z)?Math.max(-112,Math.min(7,pos.z)):5,yaw:Number.isFinite(pos.yaw)?pos.yaw:0,pitch:Number.isFinite(pos.pitch)?Math.max(-.8,Math.min(.8,pos.pitch)):0},associations:{...out.associations},outcomes:cleanOutcomes(s.outcomes),choiceUsed:s.choiceUsed===true,answerShown:s.answerShown===true,pendingOutcome:OUTCOMES.has(s.pendingOutcome)?s.pendingOutcome:null,reviewId:text(s.reviewId,100),updatedAt:text(s.updatedAt,40)};for(const p of ROUTE){const v=text(s.associations?.[p.id]);if(v)out.session.associations[p.id]=v;}}
  const result=raw.lastResult;if(result){const outcomes=cleanOutcomes(result.outcomes);if(outcomes.length)out.lastResult={outcomes,completedAt:text(result.completedAt,40)};}
  out.reviews=Array.isArray(raw.reviews)?raw.reviews.map(r=>{if(!r||addCalendarDays(r.dueDate||'',0)!==r.dueDate)return null;return {id:text(r.id,100),dueDate:r.dueDate,step:Number.isInteger(r.step)?Math.max(0,Math.min(5,r.step)):0,outcomes:cleanOutcomes(r.outcomes),createdAt:text(r.createdAt,40)};}).filter(r=>r?.id).slice(-10):[];return out;
 }

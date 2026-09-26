@@ -12,7 +12,7 @@ export const ROUTE=Object.freeze([
   ['temizuya','手水舎','水盤と木の屋根',77,20.80,'toothbrush','歯ブラシ','ItemToothbrush',[-2.5,21.90,-75.3],1.2,1.2],
   ['komainu','狛犬','参道を守る石の狛犬',85,22.20,'hat','帽子','ItemHat',[2.1,24.42,-85]],
   ['sacred-tree','ご神木','しめ縄を巻いた大木',93,22.70,'ribbon','リボン','ItemRibbon',[-3.0,24.0,-92.0]],
-  ['offertory','賽銭箱','拝殿前の木の賽銭箱',102,23.00,'letter','手紙','ItemLetter',[2.45,24.50,-101.05]],
+  ['offertory','賽銭箱','拝殿正面の木の賽銭箱',107.8,23.00,'letter','手紙','ItemLetter',[0,24.50,-107.42],3.5],
   ['summit-bell','鈴','山頂の拝殿と大鈴',110,23.00,'star','星','ItemStar',[.65,26.0,-109.5]]
 ].map((r,i)=>Object.freeze({id:r[0],order:i+1,label:r[1],cue:r[2],elevation:r[4],pathY:r[3],item:{id:r[5],label:r[6],model:r[7]},scene:{position:[0,r[4],-r[3]],itemPosition:r[8],stopOffset:r[9]??4.5,itemScale:r[10]??1.7},implemented:true})));
 export const ITEMS=Object.freeze(ROUTE.map(p=>Object.freeze({...p.item,placeId:p.id,baseScale:p.scene.itemScale})));
