@@ -525,14 +525,10 @@ function makeSprite(face){
     g.font = `800 ${fs}px "Hiragino Sans","Yu Gothic","Hiragino Kaku Gothic ProN",sans-serif`;
     g.fillText(face, 128, 132);
   }
-  // ★品物は必ず一番手前に描く（2026-08-05 利用者の指摘）
-  //   板（スプライト）なので、柱・棚の仕切り・絵板と交差すると半分だけ隠れていた。
-  //   depthTest を切ると常に最前面になり、「半分隠れる」「縦棒の後ろ」「見えない」が全部直る。
-  //   記憶の宮殿では「置いたものが必ず見える」ことが最優先なので、これでよい。
+  // 実際の棚・壁との前後関係を守る。表示位置は itemPresentation で確保する。
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({
-    map:new THREE.CanvasTexture(cv), transparent:true, depthTest:false, depthWrite:false }));
-  sp.renderOrder = 999;
-  sp.scale.set(0.62,0.62,1);   // カメラから0.95mの位置に置くのでこの大きさで画面に十分入る
+    map:new THREE.CanvasTexture(cv), transparent:true, depthTest:true, depthWrite:false }));
+  sp.scale.set(0.35,0.35,1);
   return sp;
 }
 const placedSprites = [];
@@ -541,27 +537,19 @@ const DISC_TEX = (()=>{ const cv=document.createElement('canvas'); cv.width=cv.h
   const g=cv.getContext('2d'); g.fillStyle='#fff'; g.beginPath(); g.arc(64,64,64,0,Math.PI*2); g.fill();
   return new THREE.CanvasTexture(cv); })();
 const DISC_MAT = new THREE.SpriteMaterial({ map:DISC_TEX, color:0xffffff, transparent:true, opacity:0.55, depthWrite:false });
+function itemPresentation(stIdx){
+  const st=STATIONS_ALL[stIdx], view=viewPoint(st);
+  const dx=view.x-st.spot.x,dz=view.z-st.spot.z,d=Math.hypot(dx,dz)||1;
+  const inside=stIdx>=2, offset=stIdx===1?1.1:stIdx===19?1:inside?.85:0;
+  return {x:st.spot.x+dx/d*offset,y:st.spot.y,z:st.spot.z+dz/d*offset,
+    scale:stIdx===1?.65:stIdx===19?.28:inside?.35:Math.max(.62,Math.min(2.4,d*.55)),bob:stIdx===1?.06:inside?.035:.26};
+}
 function placeItemAt(stIdx, item){
-  const st = STATIONS[stIdx];
-  // 背景の白い円板（品物と同じ浮遊アニメに乗せるため userData を共有）
-  // 品物は spot（その場所の物の上）に置く。
-  // 一時期「立ち位置から0.95m手前の空中」に出していたが、駐車場などで空に浮いて見えたため戻した。
-  // 記憶術では「その場所の物と絡んでいる」ほうが強く残る（2026-08-06 利用者の指摘）。
-  // 棚やガラスに埋もれる心配は、スプライトを常に最前面に描く指定（depthTest:false）で解決済み。
-  const px = st.spot.x, pz = st.spot.z;
-  const ud = { baseY: st.spot.y, seed: stIdx * 1.7 };
-  // ※白丸は makeSprite の中に描き込む方式に変更（別スプライトの円板は廃止）
-  const sp = makeSprite(item.face);
-  // ★立ち位置から遠い場所ほど大きくする（2026-08-06）
-  //   駐車場のように離れた場所だと、同じ大きさでは豆粒になって記憶に残らない。
-  //   記憶術でも「大きく置く」ことが効くので、見かけの大きさをそろえる。
-  const dist = Math.hypot(px - st.cam.x, pz - st.cam.z) || 1;
-  const sc = Math.max(0.62, Math.min(2.4, dist * 0.55));
-  sp.scale.set(sc, sc, 1);
-  sp.position.set(px, st.spot.y, pz);
-  sp.userData = ud; sp.renderOrder = 1;
-  scene.add(sp); placedSprites.push(sp);
-  lastFront = -2;                                        // 品物が増えたので描画順を組み直す
+  const pose=itemPresentation(stIdx),sp=makeSprite(item.face);
+  sp.scale.set(pose.scale,pose.scale,1);
+  sp.position.set(pose.x,pose.y,pose.z);
+  sp.userData={baseY:pose.y,seed:stIdx*1.7,bob:pose.bob};
+  scene.add(sp);placedSprites.push(sp);
   aimAt(sp.position);
 }
 function clearSprites(){
@@ -570,28 +558,9 @@ function clearSprites(){
   lastFront = -2;
 }
 
-/* ★置いた品物の見え方（2026-08-06 利用者の指摘）
-   全部を「常に最前面」（depthTest:false）にしていたため、棚の向こうにあるはずの品物まで
-   透けて見えていた（アイスの場所に、お弁当・おにぎり・薬・手紙……が全部重なる）。
-   かといって全部を普通に描くと、柱や仕切りに半分隠れて見えなくなる（2026-08-05の問題）。
-   → 「いま覚える1つだけ最前面。ほかは棚に隠れる」にすれば、どちらも起きない。 */
-let lastFront = -2;
-function frontSpriteIndex(){
-  if(S.idx >= STATIONS.length) return placedSprites.length - 1;   // 全部置き終えた直後
-  if(placedSprites.length === S.idx + 1) return S.idx;            // いま置いたところ
-  return -1;                                                       // 歩いている途中は最前面なし
-}
-function updateSpriteDepth(){
-  const f = frontSpriteIndex();
-  if(f === lastFront) return;
-  lastFront = f;
-  placedSprites.forEach((sp, i)=>{
-    const front = (i === f);
-    sp.material.depthTest = !front;      // 最前面にするものだけ深度テストを切る
-    sp.renderOrder = front ? 999 : 1;
-    sp.material.needsUpdate = true;
-  });
-}
+// 品物を棚越しに強制表示しない。静的な表示位置で干渉を防ぐ。
+let lastFront=-2;
+function updateSpriteDepth(){}
 
 let aimTarget = null;
 function aimAt(pos){
@@ -1215,7 +1184,7 @@ function tick(){
   const t = clock.getElapsedTime();
   updateSpriteDepth();                     // いま覚える1つだけ最前面にする
   placedSprites.forEach(sp=>{
-    sp.position.y = sp.userData.baseY + Math.sin(t*1.8 + sp.userData.seed)*0.26;
+    sp.position.y = sp.userData.baseY + Math.sin(t*1.8 + sp.userData.seed)*sp.userData.bob;
   });
   steamMeshes.forEach(s=>{
     // 立ちのぼる幅は小さく。大きく上下させると、湯気ではなく風船が浮いて見える（2026-08-06）
