@@ -1,5 +1,5 @@
 import {ROUTE,ITEMS,elevationAt} from './route.js?v=mountain15-20260926-assoc3';
-import {createMountainScene} from './scene.js?v=mountain15-20260926-assoc3';
+import {createMountainScene} from './scene.js?v=look-20260929';
 import {STORAGE_KEY,loadFrom,saveTo,freshSession,recordOutcome,makeReview,upsertReview,rescheduleReview,localDate} from './storage.js?v=mountain15-20260926-assoc3';
 import {EXAMPLES,pair,counts,recallChoices} from './learning.js?v=mountain15-20260926-assoc3';
 const $=s=>document.querySelector(s),el={card:$('#card'),kicker:$('#kicker'),title:$('#title'),copy:$('#copy'),body:$('#body'),actions:$('#actions'),walk:$('#walkControls'),destination:$('#destination'),counter:$('#counter'),warning:$('#warning'),loading:$('#loading')};

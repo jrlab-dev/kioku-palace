@@ -580,7 +580,7 @@ dom.addEventListener('pointermove', e=>{
   const dx=e.clientX-lastX, dy=e.clientY-lastY;
   lastX=e.clientX; lastY=e.clientY;
   aimTarget = null;
-  S.yaw   -= dx*0.005;
+  S.yaw   += dx*0.005;
   S.pitch  = Math.max(-0.75, Math.min(0.95, S.pitch - dy*0.004));
 });
 addEventListener('pointerup',   ()=>dragging=false);
