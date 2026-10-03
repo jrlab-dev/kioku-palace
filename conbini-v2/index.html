@@ -479,7 +479,7 @@ document.getElementById('panel').innerHTML='<h1>コンビニを準備してい�
 let artScene;
 try {
  const draco=new DRACOLoader().setDecoderPath('./vendor/draco/');
- const loaded=await new GLTFLoader().setDRACOLoader(draco).loadAsync('./store.glb?v=carswap20260928',e=>{
+ const loaded=await new GLTFLoader().setDRACOLoader(draco).loadAsync('./store.glb?v=sandwich20261003',e=>{
   const p=document.getElementById('assetProgress');if(p&&e.total)p.textContent='読み込み '+Math.round(e.loaded/e.total*100)+'%';
  });
  draco.dispose();artScene=loaded.scene;
