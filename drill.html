@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>変換ドリル｜数字と言葉を絵に変える</title>
+<style>
+/* ============================================================
+   第4の道具「変換ドリル」
+   記憶術は2段階ある。①場所に置く（3つの宮殿）②抽象的なものを絵に変える（ここ）。
+   ②が無いと、絵になるものしか覚えられない＝実用に届かない（2026-08-08 利用者の指摘）。
+   ★調べた基準：100個を10日で／1日10〜20分／1桁1秒／正確さが先、速さは後／
+     測るのは「1分間に何問」（Memory League方式）
+   ============================================================ */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:"Hiragino Sans","Yu Gothic","Hiragino Kaku Gothic ProN",sans-serif;
+  background:linear-gradient(180deg,#1a2028 0%,#222a34 60%,#2a3440 100%);
+  color:#e8edf3;line-height:1.8;min-height:100vh}
+.wrap{max-width:760px;margin:0 auto;padding:18px 16px 60px}
+h1{font-size:22px;margin:6px 0 2px}
+h2{font-size:15px;color:#5ec8d8;margin:0;letter-spacing:.08em}
+p{font-size:15px;color:#c2ccd8}
+a{color:#8fc0e8}
+.card{background:#2a3440;border-radius:14px;padding:17px 18px;margin-top:14px;box-shadow:0 6px 22px rgba(0,0,0,.28)}
+.btn{display:block;width:100%;border:0;border-radius:12px;padding:15px 16px;margin-top:12px;
+  font-size:17px;font-weight:800;cursor:pointer;font-family:inherit;background:#5ec8d8;color:#10171e}
+.btn.sub{background:#39424f;color:#dbe2ea}
+.btn.gold{background:#e0b830;color:#1a1f2b}
+.btn small{display:block;font-size:12px;font-weight:600;opacity:.75;margin-top:3px}
+.btn:disabled{opacity:.4;cursor:default}
+.stat{display:flex;gap:10px;margin-top:12px}
+.stat div{flex:1;background:#1e2731;border-radius:10px;padding:10px;text-align:center}
+.stat b{display:block;font-size:22px;color:#5ec8d8}
+.stat span{font-size:12px;color:#8fa0b4}
+.bar{height:8px;background:#39424f;border-radius:5px;overflow:hidden;margin-top:10px}
+.bar div{height:100%;background:#5ec8d8;transition:width .3s}
+.q{font-size:62px;font-weight:800;text-align:center;margin:22px 0 8px;letter-spacing:.06em}
+.q.small{font-size:34px}
+.choice{display:block;width:100%;border:0;border-radius:12px;padding:15px;margin-top:10px;
+  font-size:18px;font-weight:700;background:#39424f;color:#e8edf3;cursor:pointer;font-family:inherit}
+.choice.ok{background:#2f6a3a}
+.choice.ng{background:#7a3630}
+.tbl{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+.tbl td{border:1px solid #3c4653;padding:5px 7px}
+.tbl td.n{color:#5ec8d8;font-weight:800;width:2.6em;text-align:center;background:#1e2731}
+.tbl input{width:100%;background:#1e2731;border:1px solid #465264;border-radius:6px;color:#e8edf3;
+  font-size:14px;padding:5px 7px;font-family:inherit}
+.tip{background:#1e2731;border-left:5px solid #5ec8d8;border-radius:8px;padding:11px 14px;margin-top:14px;font-size:14px;color:#c8d3e0}
+.tip b{color:#e8edf3}
+.warn{background:#2d2420;border-left:5px solid #e0b830;border-radius:8px;padding:11px 14px;margin-top:14px;font-size:14px;color:#e2d6c0}
+.hint{font-size:13px;color:#93a1b1;margin-top:6px}
+textarea,input.text{width:100%;background:#1e2731;border:1px solid #465264;border-radius:10px;
+  color:#e8edf3;font-size:16px;padding:11px;font-family:inherit;line-height:1.7}
+textarea{height:96px}
+.conv{background:#1e2731;border-radius:10px;padding:12px;margin-top:10px;font-size:16px;line-height:2.1}
+.conv b{color:#5ec8d8;font-size:14px}
+.conv .w{display:inline-block;background:#2f3a47;border-radius:7px;padding:3px 10px;margin:3px 4px 3px 0}
+.ex{background:#2a3440;border-radius:10px;padding:11px 13px;margin-top:9px;font-size:14px}
+.ex .from{color:#e0b830;font-weight:800}
+.ex .to{color:#8fd8a0}
+.dict{display:flex;gap:8px;margin-top:8px}
+.dict input{flex:1}
+.wrow{display:flex;gap:8px;align-items:center;background:#2f3a47;border-radius:9px;padding:8px 11px;margin-top:7px;font-size:15px}
+.wrow .x{margin-left:auto;color:#8fa0b4;cursor:pointer;font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+/* ---------- 変換表（00〜99）の初期値 ----------
+   読みのルール：0＝お/わ/まる、1＝い/ひ、2＝に/ふ、3＝さん/み、4＝し/よ、
+   5＝ご/こ、6＝ろく/む、7＝なな/な、8＝はち/は/や、9＝きゅう/く
+   ★「発音が数字に近い」ことより「印象に残り、はっきり区別できる」ことを優先する。
+     ユーザーが自分で書き換えられるようにしてある。 */
+const TABLE0 = [
+ '大きな輪','お医者','鬼','お皿','お城','お米','おろし金','お鍋','お箸','お薬',
+ 'トイレ','医院','犬','胃散','石','いちご','井戸','稲','岩','インク',
+ '庭','兄','忍者','兄さん','にんじん','にこにこ顔','風呂','鮒','双葉','肉',
+ '皿','サイコロ','産婦','耳','ミシン','珊瑚','猿','港','宮','桜',
+ '島','すいか','死人','嫁','獅子','新香','城','竹刀','芝居','敷物',
+ 'ごま','小石','骨壺','ごみ','腰','ココア','コロッケ','粉','小屋','コック',
+ '室（むろ）','虫ピン','ロープ','梅','虫','婿','ろくろ','胸','牢屋','ろうそく',
+ '縄','ナイフ','夏','波','梨','ナナカマド','奈良','七夕','納屋','泣き顔',
+ '山','灰','ワニ','はさみ','橋','箱','宿','花','母','野球',
+ '熊','杭','靴','草','櫛','急行','黒','口','鍬','救急車',
+];
+/* ---------- 抽象語の変換の例（利用者の要望「例えは欲しい」）---------- */
+const EXAMPLES = [
+ ['法律', [['憲法','拳法の達人が構えている'],['民法','民宿の看板に法被がかかっている'],
+   ['刑法','警報のサイレンが鳴る'],['抵当権','定食のトンカツが皿ごと担保に取られる'],
+   ['遺言','結び目のついた巻物'],['時効','磁石がコウモリを吸い寄せる'],
+   ['契約','ケーキに矢が刺さる'],['善意の第三者','ニコニコ顔の3人目が横から現れる']]],
+ ['化学・理科', [['H₂O','エッチな尾（お）が2本'],['酸化','サンマが化ける'],
+   ['還元','缶からゲンコツが出る'],['モル','漏るバケツ'],
+   ['アルカリ','歩くカリカリ煎餅'],['触媒','食パンが媒酌人になる']]],
+ ['歴史の年号', [['1854年（日米和親条約）','18＝岩／54＝腰　→ 岩に腰かけて握手'],
+   ['1867年（大政奉還）','18＝岩／67＝胸　→ 岩が胸に返ってくる'],
+   ['1945年（終戦）','19＝インク／45＝新香　→ インクを新香にこぼす'],
+   ['1192年','11＝医院／92＝靴　→ 医院に靴が並ぶ']]],
+ ['英単語', [['abandon（捨てる）','アバンチュールをダンボールに捨てる'],
+   ['fragile（こわれやすい）','フラフラのジル人形が落ちて割れる'],
+   ['obvious（明らかな）','おっぱいがビヨンと出て丸見え']]],
+];
+const GIHOU = [
+ ['変換法','抽象語を、形のある物に置き換える','憲法 → 拳法の達人'],
+ ['分解法','長い条文を、句読点で小分けにする','1つの文を3つに切って、3か所に置く'],
+ ['置換法','決めた変換表を使う（数字変換表・五十音表）','1854 → 岩・腰'],
+ ['外連想法','まったく無関係なものを連想する','憲法 → サンマ。突飛なほど残る'],
+];
+
+// ---------- 保存 ----------
+const K_TABLE='palace_table', K_DRILL='palace_drill', K_WORDS='palace_words', K_PEND='palace_pending';
+const ls = {
+  get(k,d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }catch(e){ alert('保存できませんでした'); return false; } },
+};
+const ymd = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const today = () => ymd(new Date());
+function loadTable(){ const t = ls.get(K_TABLE,null); return (Array.isArray(t) && t.length===100) ? t : TABLE0.slice(); }
+function saveTable(t){ return ls.set(K_TABLE, t); }
+/* 成績：問題ごとに「連続正解数」を持つ。2回続けて正解したものは出す頻度を落とす（間隔反復の簡易版） */
+function loadDrill(){ return ls.get(K_DRILL, { streak:{}, best:0, log:[] }); }
+function saveDrill(d){ return ls.set(K_DRILL, d); }
+
+const app = document.getElementById('app');
+const el = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const S = { table:[], mode:'', qs:[], qi:0, ok:0, ng:0, t0:0, timer:null, stage:0 };
+
+/* ---------- 入口 ---------- */
+function screenTop(){
+  S.table = loadTable();
+  const d = loadDrill();
+  const learned = Object.values(d.streak).filter(v => v >= 2).length;   // 2回続けて正解＝覚えた
+  const rate = d.log.length ? Math.round(d.log.slice(-1)[0].rate * 100) : 0;
+  app.innerHTML = `
+    <h2>第4の道具</h2><h1>変換ドリル</h1>
+    <p>記憶の宮殿には<b>2段階</b>あります。①場所に置く ②<b>絵にならないものを、絵に変える</b>。
+    牛乳や傘は最初から絵ですが、<b>1854年・H₂SO₄・民法第90条</b>はそのままでは置けません。ここを練習します。</p>
+    <div class="card">
+      <div style="font-weight:800;font-size:17px">いまの進み具合</div>
+      <div class="bar"><div style="width:${Math.round(learned/100*100)}%"></div></div>
+      <div class="stat">
+        <div><b>${learned}</b><span>覚えた数／100</span></div>
+        <div><b>${rate}%</b><span>前回の正解率</span></div>
+        <div><b>${d.best}</b><span>1分間の最高記録</span></div>
+      </div>
+      <div class="hint">100個を覚えるのに、だいたい10日（かけ算の九九を覚えるくらいの労力）です。</div>
+    </div>
+    <button class="btn" id="d1">今日のドリル<small>数字→絵／絵→数字を20問・約5分</small></button>
+    <button class="btn gold" id="d2">1分間タイムアタック<small>記録が残ります。ここで「覚えた気」かどうか分かります</small></button>
+    <button class="btn sub" id="d3">変換表を見る・直す<small>00〜99の100個。気に入らないものは書き換えられます</small></button>
+    <button class="btn sub" id="d4">実戦：数字を宮殿に置く<small>数字を入れると絵に変わり、そのままマンションへ持っていけます</small></button>
+    <button class="btn sub" id="d5">ことばを絵に変えるコツ<small>法律・化学・歴史・英単語の例と、自分の変換を登録する辞書</small></button>
+    <div class="tip"><b>順番が大事です。</b>正確さが先、速さは後。
+    正解率がほぼ100%になってから、タイムアタックで速さを上げます（記憶競技の定石です）。</div>
+    <p style="margin-top:18px"><a href="index.html">← 記憶の宮殿の入口へ</a></p>`;
+  el('d1').onclick = ()=> startDrill('mix', 20);
+  el('d2').onclick = ()=> startTime();
+  el('d3').onclick = screenTable;
+  el('d4').onclick = screenReal;
+  el('d5').onclick = screenWords;
+}
+
+/* ---------- ドリル ---------- */
+function pickQuestions(n){
+  const d = loadDrill(), all = [];
+  for(let i=0;i<100;i++) all.push({ i, s:(d.streak[i]||0) });
+  all.sort((a,b)=> (a.s - b.s) || (Math.random()-0.5));   // 覚えていないものから優先して出す
+  return all.slice(0, n).map(x=>x.i).sort(()=>Math.random()-0.5);
+}
+function choices(correct){
+  const out = [correct];
+  while(out.length < 4){ const r = Math.floor(Math.random()*100); if(!out.includes(r)) out.push(r); }
+  return out.sort(()=>Math.random()-0.5);
+}
+function startDrill(mode, n){
+  S.mode = mode; S.qs = pickQuestions(n); S.qi = 0; S.ok = 0; S.ng = 0; S.t0 = Date.now();
+  askDrill();
+}
+function askDrill(){
+  if(S.qi >= S.qs.length){ endDrill(); return; }
+  const i = S.qs[S.qi], t = S.table;
+  const toWord = (S.mode === 'mix') ? (S.qi % 2 === 0) : (S.mode === 'n2w');
+  const num = String(i).padStart(2,'0');
+  app.innerHTML = `<h2>今日のドリル（${S.qi+1}／${S.qs.length}）</h2>
+    <div class="bar"><div style="width:${Math.round(S.qi/S.qs.length*100)}%"></div></div>
+    <div class="q${toWord?'':' small'}">${toWord ? num : esc(t[i])}</div>
+    <p style="text-align:center">${toWord ? 'この数字は、どの絵ですか' : 'この絵は、どの数字ですか'}</p>
+    <div id="ch"></div>`;
+  const box = el('ch');
+  choices(i).forEach(c=>{
+    const b = document.createElement('button');
+    b.className='choice';
+    b.textContent = toWord ? t[c] : String(c).padStart(2,'0');
+    b.onclick = ()=>{
+      const d = loadDrill();
+      if(c === i){ b.classList.add('ok'); S.ok++; d.streak[i] = (d.streak[i]||0) + 1; }
+      else { b.classList.add('ng'); S.ng++; d.streak[i] = 0;
+             [...box.children].forEach(x=>{ if(x.textContent === (toWord ? t[i] : num)) x.classList.add('ok'); }); }
+      saveDrill(d);
+      [...box.children].forEach(x=> x.onclick = null);
+      setTimeout(()=>{ S.qi++; askDrill(); }, c===i ? 350 : 1100);
+    };
+    box.appendChild(b);
+  });
+}
+function endDrill(){
+  const n = S.ok + S.ng, rate = n ? S.ok/n : 0;
+  const d = loadDrill();
+  d.log.push({ date:today(), ok:S.ok, n, rate });
+  if(d.log.length > 60) d.log = d.log.slice(-60);
+  saveDrill(d);
+  const learned = Object.values(d.streak).filter(v=>v>=2).length;
+  app.innerHTML = `<h2>ドリル おわり</h2>
+    <div class="q">${S.ok} / ${n}</div>
+    <p style="text-align:center">正解率 ${Math.round(rate*100)}%</p>
+    <div class="stat"><div><b>${learned}</b><span>覚えた数／100</span></div>
+      <div><b>${Math.round((Date.now()-S.t0)/1000)}秒</b><span>かかった時間</span></div></div>
+    ${rate >= 0.95
+      ? `<div class="tip"><b>ここまで来たら、次は速さです。</b>1分間タイムアタックに進んでください。</div>`
+      : `<div class="warn"><b>まだ速さに進まないでください。</b>正解率がほぼ100%になるまで、
+         このドリルを繰り返します。正確さが先、速さは後——これが記憶競技の定石です。</div>`}
+    <button class="btn" id="again">もう一度（20問）</button>
+    <button class="btn sub" id="top">入口へ</button>`;
+  el('again').onclick = ()=> startDrill('mix', 20);
+  el('top').onclick = screenTop;
+}
+
+/* ---------- 1分間タイムアタック ---------- */
+function startTime(){
+  S.mode='time'; S.qs = []; S.ok=0; S.ng=0; S.t0 = Date.now();
+  for(let k=0;k<200;k++) S.qs.push(Math.floor(Math.random()*100));
+  S.qi = 0;
+  askTime();
+  S.timer = setInterval(()=>{
+    const left = 60 - Math.floor((Date.now()-S.t0)/1000);
+    const e = el('left'); if(e) e.textContent = left + '秒';
+    if(left <= 0) endTime();
+  }, 200);
+}
+function askTime(){
+  const i = S.qs[S.qi], t = S.table, num = String(i).padStart(2,'0');
+  app.innerHTML = `<h2>1分間タイムアタック</h2>
+    <div class="stat"><div><b id="left">60秒</b><span>のこり</span></div>
+      <div><b id="cnt">${S.ok}</b><span>正解</span></div>
+      <div><b id="miss">${S.ng}</b><span>まちがい</span></div></div>
+    <div class="q">${num}</div>
+    <div id="ch"></div>`;
+  const box = el('ch');
+  choices(i).forEach(c=>{
+    const b = document.createElement('button');
+    b.className='choice'; b.textContent = t[c];
+    b.onclick = ()=>{
+      if(c === i) S.ok++; else S.ng++;
+      S.qi++; askTime();
+    };
+    box.appendChild(b);
+  });
+}
+function endTime(){
+  clearInterval(S.timer); S.timer = null;
+  const d = loadDrill();
+  const n = S.ok + S.ng, rate = n ? S.ok/n : 0;
+  if(S.ok > d.best) d.best = S.ok;
+  d.log.push({ date:today(), ok:S.ok, n, rate, time:true });
+  saveDrill(d);
+  app.innerHTML = `<h2>1分間の記録</h2>
+    <div class="q">${S.ok} 問</div>
+    <p style="text-align:center">正解率 ${Math.round(rate*100)}%　／　最高記録 ${d.best} 問</p>
+    <div class="tip"><b>この数字が、あなたの実力です。</b>
+      記憶競技（Memory League）も1分間で測ります。<br>
+      ${rate < 0.9 ? '正解率が9割を切っています。<b>速さより先に、正確さを戻してください。</b>'
+                   : '正解率9割以上。この調子で、1問1秒を目指してください。'}</div>
+    <button class="btn gold" id="again">もう一度</button>
+    <button class="btn sub" id="top">入口へ</button>`;
+  el('again').onclick = startTime;
+  el('top').onclick = screenTop;
+}
+
+/* ---------- 変換表を見る・直す ---------- */
+function screenTable(){
+  const t = S.table;
+  let h = `<h2>変換表</h2><h1>00〜99の100個</h1>
+    <p>この表は<b>書き換えられます。</b>「発音が数字に近い」ことより、
+    <b>あなたにとって印象に残り、はっきり区別できる</b>ことのほうが大事です。</p>
+    <div class="tip">読みのルール：0＝お/わ/まる　1＝い/ひ　2＝に/ふ　3＝さん/み　4＝し/よ
+      5＝ご/こ　6＝ろく/む　7＝なな/な　8＝はち/は/や　9＝きゅう/く</div>
+    <table class="tbl">`;
+  for(let i=0;i<100;i++){
+    if(i % 2 === 0) h += '<tr>';
+    h += `<td class="n">${String(i).padStart(2,'0')}</td><td><input data-i="${i}" value="${esc(t[i])}"></td>`;
+    if(i % 2 === 1) h += '</tr>';
+  }
+  h += `</table><button class="btn" id="save">保存する</button>
+        <button class="btn sub" id="reset">最初の表に戻す</button>
+        <button class="btn sub" id="top">入口へ</button>`;
+  app.innerHTML = h;
+  el('save').onclick = ()=>{
+    app.querySelectorAll('input[data-i]').forEach(inp=>{ t[+inp.dataset.i] = inp.value.trim() || TABLE0[+inp.dataset.i]; });
+    saveTable(t); alert('保存しました'); screenTop();
+  };
+  el('reset').onclick = ()=>{ if(confirm('最初の表に戻します。よろしいですか。')){ S.table = TABLE0.slice(); saveTable(S.table); screenTable(); } };
+  el('top').onclick = screenTop;
+}
+
+/* ---------- 実戦：数字を宮殿に置く ---------- */
+function screenReal(){
+  app.innerHTML = `<h2>実戦</h2><h1>数字を絵に変えて、宮殿へ持っていく</h1>
+    <p>覚えたい数字を入れてください。年号・電話番号・暗証番号・円周率、何でも構いません。
+    <b>2桁ずつ区切って絵に変えます。</b></p>
+    <input class="text" id="num" inputmode="numeric" placeholder="例：185418671945" value="">
+    <button class="btn" id="conv">絵に変える</button>
+    <div id="out"></div>
+    <button class="btn sub" id="top" style="margin-top:20px">入口へ</button>`;
+  el('top').onclick = screenTop;
+  el('conv').onclick = ()=>{
+    const raw = (el('num').value || '').replace(/[^0-9]/g,'');
+    if(raw.length < 2){ alert('数字を2桁以上入れてください'); return; }
+    const pairs = [];
+    for(let i=0;i<raw.length;i+=2) pairs.push(raw.slice(i,i+2).padEnd(2,'0'));
+    const words = pairs.map(p => S.table[parseInt(p,10)]);
+    el('out').innerHTML = `
+      <div class="conv"><b>${raw.length}桁 → ${pairs.length}個の絵</b><br>
+        ${pairs.map((p,i)=>`<span class="w">${p}＝${esc(words[i])}</span>`).join('')}</div>
+      <div class="tip"><b>次にやること</b><br>
+        この絵を<b>前後だけつないで物語</b>にします。
+        例：「${esc(words[0])}」が「${esc(words[1]||words[0])}」にぶつかって…と、隣どうしだけつなげば十分です。<br>
+        そのうえで、マンションの部屋の1か所ずつに置いていきます。</div>
+      <button class="btn gold" id="send">マンションに持っていく（${pairs.length}個）</button>`;
+    el('send').onclick = ()=>{
+      ls.set(K_PEND, { from:'drill', at:today(), items:words.slice() });
+      location.href = 'home.html';
+    };
+  };
+}
+
+/* ---------- ことばを絵に変えるコツ＋辞書 ---------- */
+function screenWords(){
+  const my = ls.get(K_WORDS, []);
+  let h = `<h2>ことばを絵に変える</h2><h1>数字以外は、どうするか</h1>
+    <p>法律用語も化学式も、そのままでは絵になりません。<b>形のある物に置き換えます。</b>
+    日本の記憶術では、次の4つの技法が使われています。</p>
+    <table class="tbl"><tr><td class="n" style="width:5em">技法</td><td>やること／例</td></tr>`;
+  GIHOU.forEach(g => { h += `<tr><td class="n" style="width:5em">${g[0]}</td><td>${g[1]}<br><span style="color:#8fd8a0">${g[2]}</span></td></tr>`; });
+  h += `</table>`;
+  EXAMPLES.forEach(([cat, list])=>{
+    h += `<div class="card"><div style="font-weight:800;font-size:16px;color:#5ec8d8">${cat}</div>`;
+    list.forEach(([a,b]) => { h += `<div class="ex"><span class="from">${esc(a)}</span> → <span class="to">${esc(b)}</span></div>`; });
+    h += `</div>`;
+  });
+  h += `<div class="card"><div style="font-weight:800;font-size:16px">自分の変換を登録する</div>
+    <p style="font-size:14px">一度決めた変換は、<b>次に出てきたときも同じものを使う</b>のが鉄則です。
+    毎回ちがう絵にすると混ざります。</p>
+    <div class="dict"><input class="text" id="w1" placeholder="ことば（例：抵当権）">
+      <input class="text" id="w2" placeholder="絵（例：トンカツ）"></div>
+    <button class="btn" id="add">登録する</button>
+    <div id="list"></div></div>
+    <button class="btn sub" id="top" style="margin-top:18px">入口へ</button>`;
+  app.innerHTML = h;
+  const draw = ()=>{
+    const w = ls.get(K_WORDS, []);
+    el('list').innerHTML = w.length
+      ? w.map((x,i)=>`<div class="wrow"><b>${esc(x.a)}</b> → ${esc(x.b)}<span class="x" data-i="${i}">消す</span></div>`).join('')
+      : `<div class="hint">まだ登録がありません。</div>`;
+    el('list').querySelectorAll('.x').forEach(s => s.onclick = ()=>{
+      const w2 = ls.get(K_WORDS, []); w2.splice(+s.dataset.i,1); ls.set(K_WORDS,w2); draw();
+    });
+  };
+  el('add').onclick = ()=>{
+    const a = el('w1').value.trim(), b = el('w2').value.trim();
+    if(!a || !b){ alert('ことばと絵の両方を入れてください'); return; }
+    const w = ls.get(K_WORDS, []); w.unshift({ a, b }); ls.set(K_WORDS, w);
+    el('w1').value=''; el('w2').value=''; draw();
+  };
+  el('top').onclick = screenTop;
+  draw();
+}
+
+screenTop();
+</script>
+</body>
+</html>

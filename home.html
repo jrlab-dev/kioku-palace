@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>第3の宮殿 あたまの中のマンション</title>
+<style>
+/* ============================================================
+   第3の宮殿「あたまの中のマンション」
+   ・1部屋 = 1つの宮殿（40か所）。部屋を増やせる
+   ・マンション自体は3Dで作らない。ここは「宮殿を並べておく棚」であって、
+     物を置く場所ではないため（2026-08-07 利用者の発案）
+   ・同じ宮殿を使い回すと前の像が混ざる。だから記憶競技者は宮殿を大量に持つ。
+     部屋を増やせる形にしたのは、その問題への答え
+   ============================================================ */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:"Hiragino Sans","Yu Gothic","Hiragino Kaku Gothic ProN",sans-serif;
+  background:linear-gradient(180deg,#1b2129 0%,#232b35 60%,#2b3540 100%);
+  color:#e8edf3;line-height:1.8;min-height:100vh}
+.wrap{max-width:720px;margin:0 auto;padding:18px 16px 60px}
+h1{font-size:22px;margin:6px 0 2px}
+h2{font-size:15px;color:#e0b830;margin:0;letter-spacing:.08em}
+p{font-size:15px;color:#c2ccd8}
+a{color:#8fc0e8}
+.card{background:#2b3540;border-radius:14px;padding:18px;margin-top:14px;box-shadow:0 6px 22px rgba(0,0,0,.28)}
+.btn{display:block;width:100%;border:0;border-radius:12px;padding:15px 16px;margin-top:12px;
+  font-size:17px;font-weight:800;cursor:pointer;font-family:inherit;background:#ffd400;color:#1a1f2b}
+.btn.sub{background:#39424f;color:#dbe2ea}
+.btn.gold{background:#e0b830;color:#1a1f2b}
+.btn.thin{font-size:15px;padding:11px 14px}
+.btn small{display:block;font-size:12px;font-weight:600;opacity:.75;margin-top:3px}
+.btn:disabled{opacity:.4;cursor:default}
+/* マンションの部屋 */
+.room{display:flex;gap:12px;align-items:stretch;background:#2b3540;border-radius:12px;
+  padding:13px 14px;margin-top:10px;cursor:pointer;border-left:6px solid #4a5766}
+.room.ready{border-left-color:#8fc88a}
+.room.due{border-left-color:#e0b830;background:#333b2f}
+.room .no{flex:none;width:58px;font-size:19px;font-weight:800;color:#e0b830;text-align:center;
+  display:flex;align-items:center;justify-content:center;background:#1f2731;border-radius:9px}
+.room .body{flex:1;min-width:0}
+.room .nm{font-size:17px;font-weight:800}
+.room .st{font-size:13px;color:#93a1b1}
+.room .st.on{color:#e0b830;font-weight:700}
+.empty{border:2px dashed #4a5766;border-radius:12px;padding:15px;margin-top:10px;text-align:center;
+  color:#8fa0b4;font-size:15px;cursor:pointer}
+.zone{margin-top:22px}
+.zoneHead{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:800;color:#e0b830}
+.zoneHead .n{background:#e0b830;color:#1a1f2b;border-radius:20px;padding:1px 11px;font-size:13px}
+.row{display:flex;align-items:center;gap:10px;background:#323d4a;border-radius:10px;padding:9px 11px;margin-top:8px}
+.row .idx{width:26px;text-align:center;color:#8fa0b4;font-size:13px;flex:none}
+.row input{flex:1;min-width:0;background:#1f2731;border:1px solid #485565;border-radius:8px;
+  color:#e8edf3;font-size:15px;padding:9px 10px;font-family:inherit}
+.row .ph{flex:none;width:52px;height:52px;border-radius:8px;border:1px dashed #5d6b7c;background:#1f2731;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:#8fa0b4;
+  text-align:center;overflow:hidden;position:relative}
+.row .ph img{width:100%;height:100%;object-fit:cover}
+.hint{font-size:13px;color:#93a1b1;margin-top:4px}
+.place{background:#1f2731;border-radius:12px;padding:14px;margin-top:12px;text-align:center}
+.place img{max-width:100%;max-height:44vh;border-radius:10px}
+.place .noimg{color:#8fa0b4;font-size:14px;padding:26px 0}
+.choice{display:block;width:100%;border:0;border-radius:12px;padding:14px;margin-top:10px;
+  font-size:17px;font-weight:700;background:#39424f;color:#e8edf3;cursor:pointer;font-family:inherit}
+.bar{height:8px;background:#39424f;border-radius:5px;overflow:hidden;margin-top:12px}
+.bar div{height:100%;background:#e0b830;transition:width .3s}
+.score{font-size:40px;font-weight:800;color:#e0b830;text-align:center;margin:6px 0}
+.res{display:flex;gap:9px;align-items:flex-start;background:#323d4a;border-radius:9px;padding:9px 11px;margin-top:7px;font-size:14px}
+.res .mk{font-size:17px;flex:none}
+.tip{background:#1f2731;border-left:5px solid #e0b830;border-radius:8px;padding:11px 14px;margin-top:14px;font-size:14px;color:#c8d3e0}
+.tip b{color:#e8edf3}
+.note{font-size:12px;color:#8fa0b4;margin-top:10px}
+textarea{width:100%;height:170px;background:#1f2731;border:1px solid #485565;border-radius:10px;
+  color:#e8edf3;font-size:15px;padding:11px;font-family:inherit;line-height:1.7}
+input.text{width:100%;background:#1f2731;border:1px solid #485565;border-radius:10px;
+  color:#e8edf3;font-size:16px;padding:12px;font-family:inherit}
+.kind{display:block;width:100%;text-align:left;border:0;border-radius:12px;padding:14px 16px;margin-top:10px;
+  background:#39424f;color:#e8edf3;cursor:pointer;font-family:inherit;font-size:16px;font-weight:700}
+.kind small{display:block;font-size:13px;font-weight:500;opacity:.8;margin-top:3px}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+/* ---------- 順路の型 ----------
+   40か所を白紙から決めるのは無理なので、型を出して「違うところだけ直す」形にする。
+   どの型も「性質の違う場所が続く」「分岐しない」「隣どうしが似ない」を守って並べてある。 */
+const TYPES = {
+  home: { label:'自分の家・実家', note:'いちばん確実に思い出せる場所。まずはここから',
+    zones:[
+      ['玄関まわり', ['ドアの外側','表札・郵便受け','ドアノブ','たたき（靴を脱ぐところ）','靴箱の扉',
+        '靴箱の上','傘立て','玄関の鏡','電気のスイッチ','廊下への上がり口']],
+      ['水まわり・廊下', ['廊下の途中','トイレのドア','便器','手洗い','洗面台の鏡',
+        '洗面台の下','洗濯機','風呂のドア','湯船','シャンプーの棚']],
+      ['リビング・キッチン', ['リビングのドア','ソファ','テーブル','テレビ','テレビの下の棚',
+        '窓・カーテン','部屋の照明','冷蔵庫の扉','冷蔵庫の中','コンロ']],
+      ['寝室・その他', ['寝室のドア','ベッドの枕元','布団の足元','クローゼットの扉','クローゼットの中',
+        '机','本棚','ゴミ箱','エアコン','ベランダ（または窓の外）']],
+    ]},
+  work: { label:'職場・学校', note:'毎日通う場所。家の次に思い出しやすい',
+    zones:[
+      ['入口まわり', ['建物の入口','受付・守衛室','エレベーター','階段','廊下',
+        '掲示板','ロッカー','自動販売機','トイレのドア','給湯室']],
+      ['自分の場所', ['部屋のドア','自分の机','椅子','パソコン','机の引き出し',
+        '書類の棚','ゴミ箱','窓','となりの席','壁の時計']],
+      ['みんなの場所', ['会議室のドア','会議室の机','ホワイトボード','プロジェクター','コピー機',
+        '倉庫','休憩スペース','冷蔵庫','電子レンジ','ソファ']],
+      ['外まわり', ['非常口','階段の踊り場','駐車場','外の自動販売機','喫煙所',
+        'ゴミ置き場','駐輪場','門','通りの信号','いちばん近い店']],
+    ]},
+  road: { label:'通勤・通学の道', note:'毎日歩く道。順番が体にしみている',
+    zones:[
+      ['家を出るまで', ['自分の家の玄関','門・敷地の出口','郵便受け','道路に出たところ','最初の曲がり角',
+        '自動販売機','電柱','公園の入口','公園のベンチ','公園の出口']],
+      ['道の途中', ['横断歩道','信号','コンビニ','ポスト','バス停',
+        '橋','坂道','大きな木','交差点','歩道橋']],
+      ['目的地の近く', ['駅の入口','改札','ホーム','階段','出口',
+        '商店街の入口','パン屋','本屋','薬局','大通り']],
+      ['着いてから', ['目的地の門','駐輪場','入口の階段','建物のドア','受付',
+        '廊下','エレベーター','自分のフロア','部屋の前','自分の席']],
+    ]},
+  free: { label:'自由に作る', note:'型を使わず、自分で40か所を書く',
+    zones:[
+      ['1〜10', Array.from({length:10},(_,i)=>'')],
+      ['11〜20', Array.from({length:10},(_,i)=>'')],
+      ['21〜30', Array.from({length:10},(_,i)=>'')],
+      ['31〜40', Array.from({length:10},(_,i)=>'')],
+    ]},
+};
+const TOTAL = 40;
+const SAMPLE = ['牛乳','電池','傘','薬','手紙','バナナ','靴下','歯ブラシ','パン','鍵',
+  'たまねぎ','ろうそく','手袋','はちみつ','風船','チョコ','カップめん','懐中電灯','鉛筆','ティッシュ',
+  'おにぎり','弁当','アイス','コーヒー','ビール','新聞','シャンプー','ノート','安全ピン','はさみ',
+  '定規','切手','地図','電卓','くし','タオル','針金','石けん','マッチ','ひも'];
+
+// ---------- 保存 ----------
+const ROOMS_KEY = 'palace_rooms';      // マンションの部屋（＝宮殿）
+const OLD_KEY   = 'palace_home';       // 2026-08-07 午前の1部屋だけの形式（引き継ぐ）
+const SRS_KEY   = 'palace_srs';        // 復習カレンダー（神社・コンビニと共通）
+const SRS_DAYS  = [1,3,7,14,30,60];
+const ls = {
+  get(k,d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch(e){ return d; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); return true; }
+            catch(e){ alert('保存できませんでした。写真を減らすと直ることがあります。'); return false; } },
+};
+const ymd = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const todayStr = () => ymd(new Date());
+const addDays  = n => { const d=new Date(); d.setDate(d.getDate()+n); return ymd(d); };
+
+function newRoom(type, name, no){
+  const t = TYPES[type], places = [];
+  t.zones.forEach((z, zi) => z[1].forEach(p => places.push({ zone:zi, name:p, photo:'' })));
+  return { id:'r'+Date.now()+Math.floor(Math.random()*1000), no, name, type, places, done:false, created:todayStr() };
+}
+function loadRooms(){
+  let rooms = ls.get(ROOMS_KEY, null);
+  if(!rooms){
+    rooms = [];
+    const old = ls.get(OLD_KEY, null);          // 前の形式があれば201号室として引き継ぐ
+    if(old && Array.isArray(old.places) && old.places.length === TOTAL){
+      rooms.push({ id:'r_old', no:201, name:'じぶんの家', type:'home',
+        places:old.places, done:!!old.done, created:old.updated || todayStr() });
+    }
+    ls.set(ROOMS_KEY, rooms);
+  }
+  return rooms;
+}
+function saveRooms(r){ return ls.set(ROOMS_KEY, r); }
+function nextNo(rooms){ return rooms.length ? Math.max(...rooms.map(r=>r.no)) + 1 : 201; }
+
+function loadSRS(){ return ls.get(SRS_KEY, []); }
+function saveSRS(a){ return ls.set(SRS_KEY, a); }
+function srsOfRoom(id){ return loadSRS().filter(x => x.palace==='home' && x.roomId===id); }
+function dueOfRoom(id){ const t=todayStr(); return srsOfRoom(id).filter(x => x.next <= t); }
+
+// ---------- 画面 ----------
+const app = document.getElementById('app');
+const S = { room:null, items:[], idx:0, rIdx:0, rAns:[], srsId:null };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const el = id => document.getElementById(id);
+
+/* ---------- マンション（部屋の一覧） ---------- */
+function screenMansion(){
+  S.srsId = null;
+  const rooms = loadRooms();
+  let h = `<h2>第3の宮殿</h2><h1>あたまの中のマンション</h1>
+    <p>1部屋が1つの宮殿（${TOTAL}か所）です。<b>同じ宮殿を使い回すと、前に置いたものが残って混ざります。</b>
+    記憶の達人が頭の中に建物をいくつも持っているのは、そのためです。使い切ったら次の部屋を作ってください。</p>`;
+  // 変換ドリル（drill.html）から数字を絵に変えたものが届いていれば、置く部屋を選ばせる
+  const pend = ls.get('palace_pending', null);
+  const hasPend = !!(pend && pend.items && pend.items.length);
+  if(hasPend){
+    h += `<div class="tip" style="border-left-color:#5ec8d8">
+      <b>変換ドリルから ${pend.items.length}個 届いています。</b><br>
+      ${pend.items.slice(0,6).map(esc).join('・')}${pend.items.length>6?' …':''}<br>
+      置きたい部屋を選んでください（道すじが決まっている部屋だけ使えます）。
+      <button class="btn sub" id="cancelPend" style="margin-top:8px">受け取りをやめる</button></div>`;
+  }
+  if(!rooms.length){
+    h += `<div class="tip">まだ部屋がありません。<b>201号室</b>から作りましょう。
+      最初は「自分の家」がいちばん確実です。</div>`;
+  }
+  rooms.forEach(r=>{
+    const due = dueOfRoom(r.id).length, mine = srsOfRoom(r.id);
+    const named = r.places.filter(p=>p.name.trim()).length;
+    let st, cls;
+    if(due){ st = `<span class="st on">復習の期限が来ています（${due}件）</span>`; cls='due'; }
+    else if(!r.done){ st = `<span class="st">道すじが未確定（${named}／${TOTAL}）</span>`; cls=''; }
+    else if(mine.length){ st = `<span class="st">覚えたもの ${mine.length}件・次の復習は ${mine.map(x=>x.next).sort()[0]}</span>`; cls='ready'; }
+    else { st = `<span class="st">道すじができています。覚えられます</span>`; cls='ready'; }
+    h += `<div class="room ${cls}" data-id="${r.id}">
+      <div class="no">${r.no}</div>
+      <div class="body"><div class="nm">${esc(r.name)}</div>${st}</div></div>`;
+  });
+  h += `<div class="empty" id="addRoom">＋ ${nextNo(rooms)}号室 を作る</div>
+    <div class="tip"><b>部屋の増やし方のコツ</b><br>
+      いきなり増やさないでください。<b>1部屋を逆から言えるようになってから</b>次を作ります。
+      中身（覚えるもの）は入れ替えられるので、部屋そのものは一生使えます。</div>
+    <p style="margin-top:18px"><a href="index.html">← 3つの宮殿の入口へ</a></p>`;
+  app.innerHTML = h;
+  app.querySelectorAll('.room').forEach(d => d.onclick = ()=>{
+    S.room = loadRooms().find(r => r.id === d.dataset.id);
+    if(hasPend){                                   // ドリルから届いたものを、この部屋に置く
+      if(!S.room.done){ alert('この部屋はまだ道すじが決まっていません。先に道すじを決めてください。'); screenRoom(); return; }
+      S.items = pend.items.slice(0, TOTAL);
+      localStorage.removeItem('palace_pending');
+      S.idx = 0; S.srsId = null;
+      screenPlace(); return;
+    }
+    screenRoom();
+  });
+  if(hasPend) el('cancelPend').onclick = ()=>{ localStorage.removeItem('palace_pending'); screenMansion(); };
+  el('addRoom').onclick = screenNewRoom;
+}
+
+/* ---------- 部屋を作る ---------- */
+function screenNewRoom(){
+  const rooms = loadRooms(), no = nextNo(rooms);
+  let h = `<h2>${no}号室</h2><h1>どんな場所にしますか</h1>
+    <p>あなたが<b>目をつぶっても歩ける場所</b>を選んでください。行ったことのない場所は使えません。</p>`;
+  Object.keys(TYPES).forEach(k=>{
+    h += `<button class="kind" data-k="${k}">${TYPES[k].label}<small>${TYPES[k].note}</small></button>`;
+  });
+  h += `<button class="btn sub" id="backBtn" style="margin-top:18px">もどる</button>`;
+  app.innerHTML = h;
+  app.querySelectorAll('.kind').forEach(b => b.onclick = ()=>{
+    const k = b.dataset.k;
+    app.innerHTML = `<h2>${no}号室</h2><h1>部屋の名前をつけてください</h1>
+      <p>あとで見て「どこの場所か」が分かる名前にします。<br>例：じぶんの家／実家／会社／◯◯駅までの道</p>
+      <input class="text" id="nm" value="${esc(TYPES[k].label.split('・')[0])}" maxlength="20">
+      <button class="btn" id="ok">この名前で作る</button>
+      <button class="btn sub" id="back2">もどる</button>`;
+    el('ok').onclick = ()=>{
+      const name = (el('nm').value || TYPES[k].label).trim().slice(0,20);
+      const rooms2 = loadRooms();
+      const r = newRoom(k, name, nextNo(rooms2));
+      rooms2.push(r); saveRooms(rooms2);
+      S.room = r; screenEdit();
+    };
+    el('back2').onclick = screenNewRoom;
+  });
+  el('backBtn').onclick = screenMansion;
+}
+
+/* ---------- 部屋のトップ ---------- */
+function screenRoom(){
+  const r = S.room;
+  const due = dueOfRoom(r.id), mine = srsOfRoom(r.id);
+  const named = r.places.filter(p=>p.name.trim()).length;
+  const withPhoto = r.places.filter(p=>p.photo).length;
+  app.innerHTML = `<h2>${r.no}号室</h2><h1>${esc(r.name)}</h1>
+    ${due.length ? `<button class="btn gold" id="revBtn">今日の復習（${due.length}件）
+      <small>この部屋に置いたものを、逆から思い出します・約5分</small></button>` : ''}
+    <div class="card">
+      <div style="font-weight:800;font-size:17px">この部屋の道すじ</div>
+      <div class="bar"><div style="width:${r.done ? Math.round(named/TOTAL*100) : 0}%"></div></div>
+      <div class="hint">${r.done ? `${named} / ${TOTAL} か所　（写真つき ${withPhoto} か所）`
+        : 'まだ決めていません。いまは型の名前が入っているだけです'}</div>
+      <button class="btn sub" id="editBtn">${r.done ? '道すじを見直す' : '道すじを決める'}</button>
+    </div>
+    <button class="btn" id="playBtn" ${r.done?'':'disabled'}>覚える
+      <small>${r.done ? TOTAL+'か所に置いて、逆から答えます' : '先に道すじを決めてください'}</small></button>
+    ${mine.length ? `<div class="tip">この部屋で覚えたもの：<b>${mine.length}件</b>。
+      次の復習は ${mine.map(x=>x.next).sort()[0]} です。</div>` : ''}
+    <button class="btn sub" id="delBtn" style="margin-top:22px">この部屋を消す</button>
+    <button class="btn sub" id="backBtn">マンションへ戻る</button>`;
+  if(due.length) el('revBtn').onclick = ()=> startReview(due[0]);
+  el('editBtn').onclick = screenEdit;
+  el('playBtn').onclick = screenItems;
+  el('backBtn').onclick = screenMansion;
+  el('delBtn').onclick = ()=>{
+    if(!confirm(r.no + '号室「' + r.name + '」を消します。よろしいですか。\n（この部屋の復習の記録も消えます）')) return;
+    saveRooms(loadRooms().filter(x => x.id !== r.id));
+    saveSRS(loadSRS().filter(x => !(x.palace==='home' && x.roomId===r.id)));
+    screenMansion();
+  };
+}
+
+/* ---------- 道すじを決める ---------- */
+function screenEdit(){
+  const r = S.room, t = TYPES[r.type] || TYPES.free;
+  let html = `<h2>${r.no}号室 ${esc(r.name)}</h2><h1>道すじの${TOTAL}か所</h1>
+    <p>${r.type==='free' ? '順番に歩ける場所を40か所、書いてください。'
+      : '下は型です。あなたの場所に合わせて名前を直してください。そのままでも構いません。'}
+    <b>写真は任意</b>です（あると思い出しやすくなります）。</p>
+    <div class="tip">いちどに全部やらなくて構いません。<b>1日20か所くらい</b>で切ると疲れません。
+    書いた内容はすぐ保存されます。</div>`;
+  t.zones.forEach((z, zi)=>{
+    html += `<div class="zone"><div class="zoneHead"><span class="n">${zi+1}</span>${esc(z[0])}</div>`;
+    r.places.forEach((p, i)=>{
+      if(p.zone !== zi) return;
+      html += `<div class="row"><div class="idx">${i+1}</div>
+        <input type="text" data-i="${i}" value="${esc(p.name)}" placeholder="ここに何がありますか">
+        <label class="ph" data-i="${i}">${p.photo ? `<img src="${p.photo}">` : '写真'}
+          <input type="file" accept="image/*" data-i="${i}" style="display:none"></label></div>`;
+    });
+    html += `</div>`;
+  });
+  html += `<button class="btn" id="doneBtn">決定する</button>
+           <button class="btn sub" id="backBtn">もどる</button>`;
+  app.innerHTML = html;
+
+  const persist = ()=>{
+    const rooms = loadRooms(), i = rooms.findIndex(x=>x.id===r.id);
+    if(i >= 0){ rooms[i] = r; saveRooms(rooms); }
+  };
+  app.querySelectorAll('input[type=text]').forEach(inp=>{
+    inp.oninput = ()=>{ r.places[+inp.dataset.i].name = inp.value; persist(); };
+  });
+  app.querySelectorAll('.ph').forEach(lab=>{
+    const file = lab.querySelector('input[type=file]');
+    lab.onclick = e => { if(e.target !== file) file.click(); };
+    file.onchange = ()=>{
+      const f = file.files && file.files[0];
+      if(!f) return;
+      shrink(f, uri=>{
+        r.places[+file.dataset.i].photo = uri;
+        persist();
+        lab.innerHTML = '';
+        const im = document.createElement('img'); im.src = uri;
+        lab.appendChild(im); lab.appendChild(file);
+      });
+    };
+  });
+  el('doneBtn').onclick = ()=>{
+    const empty = r.places.filter(p=>!p.name.trim()).length;
+    if(empty){ alert('名前が空のところが ' + empty + ' か所あります。埋めてください。'); return; }
+    r.done = true; persist(); screenRoom();
+  };
+  el('backBtn').onclick = screenRoom;
+}
+
+/* 写真は必ず縮めてから保存する。ブラウザの保存領域は5MB程度しかないため、
+   そのまま入れると数枚で入らなくなる（長辺480px・JPEG品質0.62で1枚30KB前後）。 */
+function shrink(file, cb){
+  const img = new Image(), fr = new FileReader();
+  fr.onload = ()=>{ img.onload = ()=>{
+    const MAX = 480, sc = Math.min(1, MAX / Math.max(img.width, img.height));
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(img.width*sc); cv.height = Math.round(img.height*sc);
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+    cb(cv.toDataURL('image/jpeg', 0.62));
+  }; img.src = fr.result; };
+  fr.readAsDataURL(file);
+}
+
+/* ---------- 覚えるものを決める ---------- */
+function screenItems(){
+  const r = S.room, key = 'palace_items_' + r.id;
+  const saved = ls.get(key, null);
+  app.innerHTML = `<h2>${r.no}号室 ${esc(r.name)}</h2><h1>何を覚えますか</h1>
+    <p>1行に1つずつ、<b>${TOTAL}個</b>まで書いてください。試験に出る用語でも、話す順番でも構いません。</p>
+    <textarea id="ta" placeholder="牛乳&#10;電池&#10;傘&#10;…">${saved ? esc(saved.join('\n')) : ''}</textarea>
+    <div class="hint" id="cnt"></div>
+    <button class="btn" id="goBtn">これで始める</button>
+    <button class="btn sub" id="sampleBtn">練習用の${TOTAL}個を入れる</button>
+    <button class="btn sub" id="backBtn">もどる</button>`;
+  const ta = el('ta'), cnt = el('cnt');
+  const count = ()=>{
+    const n = ta.value.split('\n').map(s=>s.trim()).filter(Boolean).length;
+    cnt.textContent = n + ' 個';
+    el('goBtn').disabled = n < 2;
+  };
+  ta.oninput = count; count();
+  el('sampleBtn').onclick = ()=>{ ta.value = SAMPLE.slice(0,TOTAL).join('\n'); count(); };
+  el('backBtn').onclick = screenRoom;
+  el('goBtn').onclick = ()=>{
+    const list = ta.value.split('\n').map(s=>s.trim()).filter(Boolean).slice(0,TOTAL);
+    ls.set(key, list);
+    S.items = list; S.idx = 0; screenPlace();
+  };
+}
+
+/* ---------- 置く ---------- */
+function screenPlace(){
+  const r = S.room, n = S.items.length;
+  if(S.idx >= n){ screenTurn(); return; }
+  const p = r.places[S.idx], it = S.items[S.idx];
+  app.innerHTML = `<h2>おく（${S.idx+1}／${n}）</h2>
+    <h1>${esc(p.name)} に「${esc(it)}」を置きます</h1>
+    <div class="bar"><div style="width:${Math.round((S.idx+1)/n*100)}%"></div></div>
+    <div class="place">${p.photo ? `<img src="${p.photo}">`
+      : `<div class="noimg">（写真なし）<br>${esc(p.name)}を思い浮かべてください</div>`}</div>
+    <div class="tip"><b>置き方のコツ</b><br>
+      ただ横に置くのではなく、<b>大きく・動かして・ありえない形</b>にしてください。
+      「${esc(p.name)}」から「${esc(it)}」があふれ出す、突き刺さる、音を立てる——そこまでやると残ります。</div>
+    <button class="btn" id="okBtn">置いた</button>`;
+  el('okBtn').onclick = ()=>{ S.idx++; screenPlace(); };
+}
+
+/* ---------- 折り返し ---------- */
+function screenTurn(){
+  app.innerHTML = `<h2>おきおわり</h2><h1>${S.items.length}か所ぜんぶに置きました</h1>
+    <p>ここから<b>逆に</b>たどります。最初からではなく、<b>いちばん最後の場所から戻ります。</b></p>
+    <div class="tip"><b>なぜ逆から聞くのか</b><br>
+      ふつうに丸暗記したものは、逆から言えません。順番に引っぱり出しているだけだからです。
+      逆から言えたなら、それは<b>並びではなく場所を覚えた</b>ということです。</div>
+    <button class="btn" id="revBtn">いちばん最後の場所から戻る</button>`;
+  el('revBtn').onclick = ()=>{ S.rIdx = S.items.length-1; S.rAns = []; screenReverse(); };
+}
+
+/* ---------- 逆から答える ---------- */
+function pickChoices(correctIdx){
+  const pool = S.items.map((v,i)=>({v,i})).filter(x=>x.i !== correctIdx);
+  const out = [];
+  while(out.length < 3 && pool.length) out.push(pool.splice(Math.floor(Math.random()*pool.length),1)[0].v);
+  out.push(S.items[correctIdx]);
+  for(let i=out.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [out[i],out[j]]=[out[j],out[i]]; }
+  return out;
+}
+function screenReverse(){
+  const i = S.rIdx, p = S.room.places[i], correct = S.items[i], n = S.items.length;
+  app.innerHTML = `<h2>ぎゃくから（${n-i}／${n}）</h2>
+    <h1>${esc(p.name)} に何を置きましたか</h1>
+    <div class="bar"><div style="width:${Math.round((n-i)/n*100)}%"></div></div>
+    <div class="place">${p.photo ? `<img src="${p.photo}">` : `<div class="noimg">${esc(p.name)}</div>`}</div>
+    <div id="ch"></div>`;
+  const box = el('ch');
+  pickChoices(i).forEach(v=>{
+    const b = document.createElement('button');
+    b.className='choice'; b.textContent = v;
+    b.onclick = ()=>{
+      S.rAns.push({ ok:(v===correct), correct, chosen:v, place:p.name });
+      S.rIdx--;
+      if(S.rIdx < 0) screenResult(); else screenReverse();
+    };
+    box.appendChild(b);
+  });
+}
+
+/* ---------- 結果 ---------- */
+function screenResult(){
+  const n = S.rAns.filter(a=>a.ok).length, N = S.rAns.length;
+  const rows = S.rAns.map(a=>`<div class="res"><div class="mk">${a.ok?'⭕':'❌'}</div>
+    <div><div>${esc(a.correct)}${a.ok?'':'　→ '+esc(a.chosen)+' と答えました'}</div>
+    <div style="font-size:13px;color:#93a1b1">${esc(a.place)}</div></div></div>`).join('');
+  const msg = n >= N*0.8 ? 'この部屋は、もうあなたのものです。次の部屋を作っても大丈夫です。'
+            : n >= N*0.4 ? '半分は場所から出ています。出てこなかったところは、置き方が弱かったところです。'
+            : 'まだ並びを覚えているだけです。もっと大きく・動かして置いてみてください。';
+  app.innerHTML = `<h2>ぎゃくからの けっか</h2>
+    <div class="score">${n} / ${N}</div>
+    <p style="text-align:center">${msg}</p>
+    ${rows}
+    ${S.srsId ? `<button class="btn gold" id="srsBtn">復習をおえる</button>`
+      : `<button class="btn gold" id="srsBtn">この部屋を復習カレンダーに入れる
+          <small>明日もう一度、逆から聞きます。これをやらないと忘れます</small></button>`}
+    <button class="btn sub" id="topBtn">${S.room.no}号室へ戻る</button>`;
+  el('srsBtn').onclick = ()=>{
+    const days = S.srsId ? updateSRS(S.srsId, n, N) : registerSRS(n, N);
+    const was = S.srsId; S.srsId = null;
+    app.innerHTML = `<h2>${was?'ふくしゅう ずみ':'とうろく しました'}</h2>
+      <h1>次は ${days}日後 に呼び戻します</h1>
+      <p>${was ? (n>=N*0.8?'よくできたので、次の間隔をのばしました。':n>=N*0.5?'同じ間隔でもう一度やります。':'半分より下だったので、明日からやり直します。')
+               : '忘れかけたころに聞くのが一番効きます。マンションの画面に出ます。'}</p>
+      <div class="tip">1日後 → 3日後 → 7日後 → 14日後 → 30日後 → 60日後 と、できるほど間隔がのびます。<br>
+        <b>部屋はそのまま残ります。</b>覚える中身だけ入れ替えて、何度でも使えます。</div>
+      <button class="btn" id="ok2">とじる</button>`;
+    el('ok2').onclick = screenRoom;
+  };
+  el('topBtn').onclick = screenRoom;
+}
+
+/* ---------- 復習（間隔反復） ---------- */
+function registerSRS(score, total){
+  const list = loadSRS();
+  list.push({ id:'h'+Date.now(), palace:'home', roomId:S.room.id, roomNo:S.room.no, roomName:S.room.name,
+    count:S.items.length, items:S.items.slice(), stage:0, next:addDays(SRS_DAYS[0]),
+    created:todayStr(), history:[{date:todayStr(), score, total}] });
+  saveSRS(list); return SRS_DAYS[0];
+}
+function updateSRS(id, score, total){
+  const list = loadSRS(), it = list.find(x=>x.id===id);
+  if(!it) return SRS_DAYS[0];
+  const rate = total ? score/total : 0;
+  if(rate >= 0.8)     it.stage = Math.min(it.stage+1, SRS_DAYS.length-1);
+  else if(rate < 0.5) it.stage = 0;
+  it.next = addDays(SRS_DAYS[it.stage]);
+  it.history.push({date:todayStr(), score, total});
+  saveSRS(list); return SRS_DAYS[it.stage];
+}
+function startReview(rec){
+  S.srsId = rec.id;
+  S.items = rec.items.slice();
+  S.room = loadRooms().find(r => r.id === rec.roomId) || S.room;
+  S.rIdx = S.items.length - 1; S.rAns = [];
+  screenReverse();
+}
+
+screenMansion();
+</script>
+</body>
+</html>
